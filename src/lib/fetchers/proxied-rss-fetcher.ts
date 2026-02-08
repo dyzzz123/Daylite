@@ -17,16 +17,41 @@ export interface RSSFetcherConfig {
 }
 
 /**
+ * 使用代理获取 RSS 内容
+ */
+async function fetchRSSContent(url: string): Promise<string> {
+  // 使用相对路径调用本地代理 API
+  const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+
+  console.log(`[Proxied RSS] 调用代理 API: ${proxyUrl}`);
+
+  const response = await fetch(proxyUrl, {
+    signal: AbortSignal.timeout(35000), // 35秒超时
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`代理 API 返回错误 ${response.status}: ${errorText}`);
+  }
+
+  const text = await response.text();
+  console.log(`[Proxied RSS] 成功获取内容，长度: ${text.length}`);
+
+  return text;
+}
+
+/**
  * 使用代理获取 RSS（适合国内源）
  */
 export async function fetchRSSWithProxy(config: RSSFetcherConfig): Promise<FeedItem[]> {
   try {
     console.log(`[Proxied RSS Fetcher] 获取 ${config.url} (使用代理)`);
 
-    // 使用本地代理 API
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(config.url)}`;
+    // 获取 RSS 内容
+    const xmlContent = await fetchRSSContent(config.url);
 
-    const feed = await parser.parseURL(proxyUrl);
+    // 解析 RSS 内容
+    const feed = await parser.parseString(xmlContent);
 
     const items: FeedItem[] = [];
 
@@ -84,8 +109,8 @@ export async function validateRSSUrlWithProxy(url: string): Promise<{
   error?: string;
 }> {
   try {
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-    await parser.parseURL(proxyUrl);
+    const xmlContent = await fetchRSSContent(url);
+    await parser.parseString(xmlContent);
     console.log(`[Proxied RSS Validator] 验证成功: ${url}`);
     return { valid: true };
   } catch (error) {
@@ -115,8 +140,8 @@ export async function getRSSMetadataWithProxy(url: string): Promise<{
   link?: string;
 } | null> {
   try {
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-    const feed = await parser.parseURL(proxyUrl);
+    const xmlContent = await fetchRSSContent(url);
+    const feed = await parser.parseString(xmlContent);
 
     return {
       title: feed.title,
