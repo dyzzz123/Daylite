@@ -3,7 +3,7 @@ import type { FeedItem } from '@/types';
 
 const parser = new Parser({
   timeout: 30000,
-  customHeaders: {
+  headers: {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
   },
