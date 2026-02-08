@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateRSSUrl, getRSSMetadata } from "@/lib/fetchers/rss-fetcher";
+import { validateRSSUrlWithProxy, getRSSMetadataWithProxy } from "@/lib/fetchers/proxied-rss-fetcher";
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    const { url, useProxy = false } = await request.json();
 
     if (!url) {
       return NextResponse.json(
@@ -29,21 +30,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate RSS feed
-    const validationResult = await validateRSSUrl(normalizedUrl);
+    // 优先尝试使用代理（适合国内源）
+    let validationResult;
+    let metadata;
+
+    if (useProxy || true) { // 默认使用代理
+      console.log('[RSS Validation] 使用代理验证');
+      validationResult = await validateRSSUrlWithProxy(normalizedUrl);
+      if (validationResult.valid) {
+        metadata = await getRSSMetadataWithProxy(normalizedUrl);
+      }
+    }
+
+    // 如果代理失败，尝试直接连接
+    if (!validationResult?.valid) {
+      console.log('[RSS Validation] 代理失败，尝试直接连接');
+      validationResult = await validateRSSUrl(normalizedUrl);
+      if (validationResult.valid) {
+        metadata = await getRSSMetadata(normalizedUrl);
+      }
+    }
 
     if (!validationResult.valid) {
       return NextResponse.json(
         {
           valid: false,
           error: validationResult.error || "无法解析RSS源，请检查链接是否正确",
+          hint: "如果是国内RSS源，可能需要使用代理。此问题已自动处理，如果仍然失败，请稍后重试。",
         },
         { status: 400 }
       );
     }
-
-    // Get metadata
-    const metadata = await getRSSMetadata(normalizedUrl);
 
     return NextResponse.json({
       valid: true,

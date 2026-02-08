@@ -55,7 +55,8 @@ local.db
 # test files
 feeds*.json
 
-# documentation (keep README.md)
+# documentation (keep README.md and docs/)
 *.md
 !README.md
+!docs/**/*.md
 !.agents/**/*.md

@@ -1,6 +1,7 @@
 import { getEnabledSources } from './source-service';
 import { createFeedItems } from './feed-service';
-import { fetchRSS } from './fetchers/rss-fetcher';
+import { fetchRSS as fetchRSSDirect } from './fetchers/rss-fetcher';
+import { fetchRSSWithProxy } from './fetchers/proxied-rss-fetcher';
 import { fetchZhihuHot } from './fetchers/zhihu-fetcher';
 import { fetchWeiboHot } from './fetchers/weibo-fetcher';
 import { fetchXiaohongshu } from './fetchers/xiaohongshu-fetcher';
@@ -26,11 +27,24 @@ export async function fetchAllSources(): Promise<{
       switch (source.type) {
         case 'rss':
           if (source.url) {
-            items = await fetchRSS({
-              url: source.url,
-              sourceName: source.name,
-              icon: source.icon,
-            });
+            // 优先使用代理获取 RSS（适合国内源）
+            try {
+              console.log(`[Fetch Scheduler] 尝试使用代理获取 ${source.name}`);
+              items = await fetchRSSWithProxy({
+                url: source.url,
+                sourceName: source.name,
+                icon: source.icon,
+                useProxy: true,
+              });
+            } catch (proxyError) {
+              console.log(`[Fetch Scheduler] 代理失败，尝试直接连接 ${source.name}:`, proxyError);
+              // 代理失败，尝试直接连接
+              items = await fetchRSSDirect({
+                url: source.url,
+                sourceName: source.name,
+                icon: source.icon,
+              });
+            }
           }
           break;
 
@@ -102,11 +116,24 @@ export async function fetchSourceById(sourceId: string): Promise<number> {
   switch (source.type) {
     case 'rss':
       if (source.url) {
-        items = await fetchRSS({
-          url: source.url,
-          sourceName: source.name,
-          icon: source.icon,
-        });
+        // 优先使用代理获取 RSS（适合国内源）
+        try {
+          console.log(`[Fetch Source] 尝试使用代理获取 ${source.name}`);
+          items = await fetchRSSWithProxy({
+            url: source.url,
+            sourceName: source.name,
+            icon: source.icon,
+            useProxy: true,
+          });
+        } catch (proxyError) {
+          console.log(`[Fetch Source] 代理失败，尝试直接连接 ${source.name}:`, proxyError);
+          // 代理失败，尝试直接连接
+          items = await fetchRSSDirect({
+            url: source.url,
+            sourceName: source.name,
+            icon: source.icon,
+          });
+        }
       }
       break;
 
