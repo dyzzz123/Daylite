@@ -7,7 +7,7 @@ const SETTINGS_FILE = path.join(process.cwd(), "data", "settings.json");
 
 // 设置数据类型
 export interface AISettings {
-  provider: "openai" | "deepseek" | "claude" | "custom";
+  provider: "openai" | "deepseek" | "claude" | "custom"; // 内部支持更多类型，但UI只显示deepseek和custom
   apiKey: string;
   apiUrl?: string;
   model?: string;
@@ -106,7 +106,7 @@ export async function getAIConfig(): Promise<{
     },
     deepseek: {
       url: "https://api.deepseek.com/v1/chat/completions",
-      model: "deepseek-chat",
+      model: "deepseek-chat", // DeepSeek-V3，也可以用 deepseek-reasoner (R1)
     },
     claude: {
       url: "https://api.anthropic.com/v1/messages",

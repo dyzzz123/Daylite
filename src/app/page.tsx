@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { FeedCard } from "@/components/dashboard/feed-card";
-import { SourceManager } from "@/components/dashboard/source-manager";
+import { SettingsSidebar } from "@/components/dashboard/settings-sidebar";
 import { Button } from "@/components/ui/button";
-import { Settings, RefreshCw, Sparkles, AlertCircle } from "lucide-react";
+import { Settings, RefreshCw, AlertCircle, Sparkles } from "lucide-react";
 import type { FeedItem, FeedSource } from "@/types";
 
 interface SummaryResponse {
@@ -12,6 +12,7 @@ interface SummaryResponse {
   keyPoints: string[];
   isMock?: boolean;
   fromCache?: boolean;
+  isFresh?: boolean;
   error?: string;
 }
 
@@ -25,12 +26,29 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const today = new Date().toLocaleDateString('zh-CN', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
+
+  // 根据时间获取问候语
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return '早安';
+    if (hour < 18) return '午安';
+    return '晚安';
+  };
+
+  // 获取生成时间
+  const getGeneratedTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
   // Fetch feed items
   async function fetchFeeds() {
@@ -46,14 +64,15 @@ export default function DashboardPage() {
     }
   }
 
-  // Fetch sources
+  // Fetch sources (only enabled ones)
   async function fetchSources() {
     try {
       const response = await fetch("/api/sources");
       if (!response.ok) throw new Error("Failed to fetch sources");
 
       const data = await response.json();
-      setSources(data.sources || []);
+      // Filter to only show enabled sources in the feed
+      setSources((data.sources || []).filter((s: FeedSource) => s.enabled));
     } catch (err) {
       console.error("Failed to fetch sources:", err);
     }
@@ -65,11 +84,14 @@ export default function DashboardPage() {
       setSummaryLoading(true);
       setError(null);
 
+      console.log('[fetchSummary] 开始请求AI汇总...');
+
       const response = await fetch("/api/summary", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ forceRefresh: true }), // 强制刷新，不使用缓存
       });
 
       if (!response.ok) {
@@ -77,6 +99,15 @@ export default function DashboardPage() {
       }
 
       const result = await response.json();
+
+      console.log('[fetchSummary] AI汇总响应:', {
+        isMock: result.isMock,
+        isFresh: result.isFresh,
+        fromCache: result.fromCache,
+        hasSummary: !!result.summary,
+        hasKeyPoints: !!result.keyPoints,
+      });
+
       setSummaryData(result);
     } catch (err) {
       console.error("Failed to fetch AI summary:", err);
@@ -98,21 +129,35 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100/50 p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <header className="mb-6">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 {today}
               </p>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                早安，Lenny
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                {getGreeting()}，John
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="text-gray-400">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.location.href = '/playground'}
+              >
+                <Sparkles className="w-4 h-4" />
+                UI 演示工坊
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setSettingsOpen(true)}
+              >
                 <Settings className="w-5 h-5" />
               </Button>
             </div>
@@ -122,46 +167,42 @@ export default function DashboardPage() {
         {/* Main Content */}
         <div className="space-y-6">
           {/* 今日 AI 汇报 */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100/50 shadow-sm">
+          <div className="p-6">
             {/* 头部 */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                  <span className="text-2xl">📋</span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    今日 AI 汇报
-                  </h2>
-                  {summaryData?.isMock && (
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full ml-2">
-                      演示
-                    </span>
-                  )}
-                </div>
+                {summaryData?.isMock && (
+                  <span className="text-xs text-muted-foreground">
+                    演示模式
+                  </span>
+                )}
+                {!summaryData?.isMock && summaryData?.fromCache && (
+                  <span className="text-xs text-muted-foreground">
+                    已缓存
+                  </span>
+                )}
+                {!summaryData?.isMock && summaryData?.isFresh && (
+                  <span className="text-xs text-muted-foreground">
+                    {getGeneratedTime()} 生成
+                  </span>
+                )}
               </div>
               <Button
                 onClick={fetchSummary}
                 disabled={summaryLoading}
-                variant="outline"
-                className="gap-2"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
               >
                 <RefreshCw className={`w-4 h-4 ${summaryLoading ? 'animate-spin' : ''}`} />
-                {summaryLoading ? "生成中..." : "刷新汇总"}
               </Button>
             </div>
 
             {/* 加载状态 */}
             {summaryLoading && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Sparkles className="w-4 h-4 animate-spin" />
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <span>AI 正在整理你的信息...</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-2 bg-blue-100 rounded animate-pulse" />
-                  <div className="h-2 bg-blue-100/50 rounded animate-pulse" />
-                  <div className="h-2 bg-blue-100/30 rounded animate-pulse" />
                 </div>
               </div>
             )}
@@ -170,38 +211,32 @@ export default function DashboardPage() {
             {!summaryLoading && summaryData && (
               <div className="space-y-4">
                 {/* 总结 */}
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    今日总结
-                  </p>
-                  <p className="text-base text-gray-900 leading-relaxed">
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <p className="text-base text-foreground leading-relaxed">
                     {summaryData.summary}
                   </p>
                 </div>
 
                 {/* 关键点 */}
                 {summaryData.keyPoints && summaryData.keyPoints.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      关键要点
-                    </p>
-                    <ul className="space-y-1">
-                      {summaryData.keyPoints.map((point, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-2 text-sm text-gray-600"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <ul className="space-y-2">
+                    {summaryData.keyPoints.map((point, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-sm text-muted-foreground
+                                     animate-in fade-in slide-in-from-bottom-2 duration-500"
+                        style={{ animationDelay: `${(index + 1) * 100}ms` }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
 
                 {/* 错误状态 */}
                 {error && (
-                  <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-start gap-2 text-sm text-red-600">
                     <AlertCircle className="w-5 h-5 shrink-0" />
                     <span>{error}</span>
                   </div>
@@ -211,14 +246,20 @@ export default function DashboardPage() {
           </div>
 
           {/* 信息流 */}
-          <FeedCard items={feed} sources={sources} onRefresh={fetchFeeds} />
-          <SourceManager onSourcesUpdate={fetchSources} />
+          <FeedCard items={feed} onRefresh={fetchFeeds} />
         </div>
 
+        {/* Settings Sidebar */}
+        <SettingsSidebar
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          onSourcesUpdate={fetchSources}
+        />
+
         {/* Footer */}
-        <footer className="mt-8 pt-4 border-t border-gray-200">
+        <footer className="mt-8 pt-4 border-t border-border">
           <div className="max-w-5xl mx-auto text-center">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               个人信息聚合仪表盘 • {summaryData?.isMock ? '演示模式' : 'AI 汇报'}
             </p>
           </div>

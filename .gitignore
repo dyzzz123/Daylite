@@ -51,3 +51,11 @@ data/
 *.db-shm
 *.db-wal
 local.db
+
+# test files
+feeds*.json
+
+# documentation (keep README.md)
+*.md
+!README.md
+!.agents/**/*.md

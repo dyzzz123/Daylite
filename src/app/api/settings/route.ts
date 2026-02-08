@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSettings, saveSettings, verifyPin, Settings } from "@/lib/settings";
+import { getSettings, saveSettings, verifyPin, getAIConfig, Settings } from "@/lib/settings";
 
 // GET - 获取设置（需要 PIN 验证）
 export async function GET(request: NextRequest) {

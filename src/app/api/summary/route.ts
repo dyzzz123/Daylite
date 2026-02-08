@@ -4,9 +4,11 @@ import { getTodayFeedItems } from "@/lib/feed-service";
 import { createDailyReport, getTodayDailyReport } from "@/lib/report-service";
 import type { FeedItem } from "@/types";
 
-// 判断是否为 Claude API
+// 判断是否为 Claude API（通过 URL 判断）
+// 注意：大部分第三方 API（包括红叶云、AI Code With 等）都返回 OpenAI 格式
+// 只有官方 Anthropic API 返回 Claude 格式
 function isClaudeAPI(url: string): boolean {
-  return url.includes("anthropic.com") || url.includes("claude");
+  return url.includes("anthropic.com");
 }
 
 interface SummaryResponse {
@@ -36,19 +38,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(mockSummary);
     }
 
-    // 检查是否已有今日总结（复用已有的）
-    const existingReport = await getTodayDailyReport();
-    if (existingReport && existingReport.summary) {
-      return NextResponse.json({
-        summary: existingReport.summary,
-        keyPoints: existingReport.keyPoints,
-        isMock: false,
-        fromCache: true,
-      });
-    }
-
     // 解析请求体（可选：前端可以传入自定义数据）
     const body = await request.json().catch(() => ({}));
+
+    // 支持forceRefresh参数来强制重新生成（忽略缓存）
+    const forceRefresh = body.forceRefresh === true;
+
+    // 如果不强制刷新，检查是否已有今日总结
+    if (!forceRefresh) {
+      const existingReport = await getTodayDailyReport();
+      if (existingReport && existingReport.summary) {
+        console.log("Returning cached daily report");
+        return NextResponse.json({
+          summary: existingReport.summary,
+          keyPoints: existingReport.keyPoints,
+          isMock: false,
+          fromCache: true,
+        });
+      }
+    } else {
+      console.log("Force refresh requested, regenerating summary...");
+    }
 
     // 构建 prompt：信息流聚合模式
     const prompt = buildPrompt(body.feed && body.feed.length > 0 ? body.feed : todayFeed);
@@ -163,6 +173,8 @@ ${prompt}`,
       summary,
       keyPoints,
       isMock: false,
+      isFresh: true, // 标记为新生成的总结
+      fromCache: false,
     });
   } catch (error) {
     console.error("Summary API error:", error);
