@@ -1,6 +1,6 @@
-# 个人每日仪表盘 (Personal Daily Dashboard)
+# Daylite
 
-一个高效的个人每日信息聚合仪表盘，使用 Next.js 16、React 19、SQLite 和 AI 构建。
+一个高效的个人资讯网站，使用 Next.js 16、React 19、SQLite 和 AI 构建。
 
 ## 功能特性
 
