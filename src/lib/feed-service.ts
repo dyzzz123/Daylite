@@ -245,6 +245,27 @@ export async function deleteOldFeedItems(daysToKeep: number = 90): Promise<numbe
   return result.rowsAffected;
 }
 
+// Delete all feed items from a specific source
+export async function deleteFeedItemsBySource(source: string): Promise<number> {
+  const result = await db.execute({
+    sql: 'DELETE FROM feed_items WHERE source = ?',
+    args: [source],
+  });
+
+  console.log(`Deleted ${result.rowsAffected} feed items from source: ${source}`);
+  return result.rowsAffected;
+}
+
+// Delete all feed items (for cleanup or reset)
+export async function deleteAllFeedItems(): Promise<number> {
+  const result = await db.execute({
+    sql: 'DELETE FROM feed_items',
+  });
+
+  console.log(`Deleted all ${result.rowsAffected} feed items`);
+  return result.rowsAffected;
+}
+
 // Get today's feed items
 export async function getTodayFeedItems(): Promise<FeedItem[]> {
   const today = new Date();
