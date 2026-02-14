@@ -1,0 +1,354 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+:root {
+  --radius: 0.5rem; /* 8px - 中等圆角 */
+  /* Huemint 配色方案 - 亮色模式 */
+  --background: #fdffff; /* 极浅蓝白背景 */
+  --foreground: #6f6b67; /* 深灰棕文字 */
+  --card: #ffffff; /* 卡片背景 - 纯白以对比背景 */
+  --card-foreground: #6f6b67;
+  --popover: #ffffff;
+  --popover-foreground: #6f6b67;
+  --primary: #ab9f99; /* 主色调 - 温暖米灰 */
+  --primary-foreground: #6f6b67;
+  --secondary: #ded2d3; /* 次要色 - 淡粉灰 */
+  --secondary-foreground: #6f6b67;
+  --muted: #ded2d3;
+  --muted-foreground: #6f6b67;
+  --accent: #ab9f99; /* 强调色 - 温暖米灰 */
+  --accent-foreground: #6f6b67;
+  --destructive: #dc2626;
+  --border: #ded2d3;
+  --input: #ded2d3;
+  --ring: #ab9f99;
+  --chart-1: #ab9f99;
+  --chart-2: #ded2d3;
+  --chart-3: #6f6b67;
+  --chart-4: #fdffff;
+  --chart-5: #ffffff;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #6f6b67;
+  --sidebar-primary: #ab9f99;
+  --sidebar-primary-foreground: #6f6b67;
+  --sidebar-accent: #ded2d3;
+  --sidebar-accent-foreground: #6f6b67;
+  --sidebar-border: #ded2d3;
+  --sidebar-ring: #ab9f99;
+}
+
+.dark {
+  /* Huemint 配色方案 - 暗色模式 */
+  --background: #0a0b07; /* 近黑色绿背景 */
+  --foreground: #7b907b; /* 浅橄榄色文字 */
+  --card: #363d37; /* 深灰绿卡片 */
+  --card-foreground: #7b907b;
+  --popover: #363d37;
+  --popover-foreground: #7b907b;
+  --primary: #7b907b; /* 主色调 - 浅橄榄 */
+  --primary-foreground: #0a0b07;
+  --secondary: #566058; /* 次要色 - 灰绿 */
+  --secondary-foreground: #7b907b;
+  --muted: #363d37;
+  --muted-foreground: #7b907b;
+  --accent: #7b907b;
+  --accent-foreground: #0a0b07;
+  --destructive: #dc2626;
+  --border: #566058;
+  --input: #566058;
+  --ring: #7b907b;
+  --chart-1: #7b907b;
+  --chart-2: #566058;
+  --chart-3: #363d37;
+  --chart-4: #0a0b07;
+  --chart-5: #1a1f1a;
+  --sidebar: #363d37;
+  --sidebar-foreground: #7b907b;
+  --sidebar-primary: #7b907b;
+  --sidebar-primary-foreground: #0a0b07;
+  --sidebar-accent: #566058;
+  --sidebar-accent-foreground: #7b907b;
+  --sidebar-border: #566058;
+  --sidebar-ring: #7b907b;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* 隐藏滚动条但保持滚动功能 */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* ========================================
+   UI 演示工坊自定义动画
+   ======================================== */
+
+/* 波浪文字动画 */
+@keyframes wave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-wave {
+  animation: wave 1s ease-in-out infinite;
+}
+
+/* 渐变流动动画 */
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-flow {
+  background-size: 300% 100%;
+  animation: gradient-flow 3s ease infinite;
+}
+
+/* 涟漪效果动画 */
+@keyframes ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.5;
+  }
+  100% {
+    width: 300px;
+    height: 300px;
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 0.6s ease-out;
+}
+
+/* 跑马灯动画 */
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+/* 3D 翻转卡片保留 3D 效果 */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 光标样式优化 */
+.custom-cursor {
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform 0.1s ease-out;
+}
+
+.cursor-trail {
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* 磁性按钮过渡 */
+.magnetic-button {
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 翻转卡片过渡 */
+.flip-card {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 倾斜卡片过渡 */
+.tilt-card {
+  transition: transform 0.2s ease-out;
+  transform-style: preserve-3d;
+}
+
+/* 物理开关动画 */
+.physics-toggle {
+  transition: background-color 0.3s ease;
+}
+
+.physics-toggle > div {
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* 演示卡片悬停效果 */
+.group:hover .group-hover\:scale-110 {
+  transform: scale(1.1);
+}
+
+/* 文本淡入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* 交错动画延迟 */
+.animate-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animate-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animate-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animate-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animate-delay-500 {
+  animation-delay: 0.5s;
+}
+
+/* 脉冲动画 */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* 光晕脉冲动画 */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(171, 159, 153, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(171, 159, 153, 0.8),
+                0 0 30px rgba(171, 159, 153, 0.6);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* 抖动动画 */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* 慢速弹跳动画 */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 1.5s ease-in-out infinite;
+}

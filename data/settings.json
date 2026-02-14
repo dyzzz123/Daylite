@@ -1,0 +1,25 @@
+{
+  "updatedAt": "2026-02-07T07:31:49.714Z",
+  "pin": "1234",
+  "aiSettings": {
+    "provider": "custom",
+    "apiKey": "cr_83c1ed4b10248e30a2d86da22e4b15756ea348e177719adb7548a67930c29dec",
+    "apiUrl": "https://cloud.hongqiye.com:3300/api/v1/chat/completions",
+    "model": "claude-sonnet-4-5-20250929"
+  },
+  "calendar": {
+    "provider": "manual",
+    "enabled": false,
+    "description": "手动输入日程"
+  },
+  "todo": {
+    "provider": "manual",
+    "enabled": false,
+    "description": "手动管理待办"
+  },
+  "feed": {
+    "provider": "manual",
+    "enabled": false,
+    "description": "手动添加动态"
+  }
+}
