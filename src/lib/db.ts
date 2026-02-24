@@ -164,6 +164,15 @@ export async function initDatabase() {
     ON analytics_events(eventName)
   `);
 
+  // Create settings table for Vercel compatibility (replaces file-based storage)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      data TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )
+  `);
+
   console.log('Database initialized successfully');
 }
 

@@ -75,9 +75,12 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      // 调用测试接口
-      const testUrl = new URL("/api/settings/ai/test", request.url);
-      const testResponse = await fetch(testUrl.toString(), {
+      // 调用测试接口（使用相对路径，避免 URL 构造问题）
+      const baseUrl = request.headers.get('host') ?
+        `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}` :
+        'http://localhost:3000';
+
+      const testResponse = await fetch(`${baseUrl}/api/settings/ai/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider, apiKey, apiUrl, model }),

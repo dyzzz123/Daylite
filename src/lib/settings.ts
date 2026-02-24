@@ -1,23 +1,18 @@
-import fs from "fs/promises";
-import path from "path";
-import crypto from "crypto";
-
-// 设置数据存储路径
-const SETTINGS_FILE = path.join(process.cwd(), "data", "settings.json");
+import { db } from "@/lib/db";
 
 // 设置数据类型
 export interface AISettings {
-  provider: "openai" | "deepseek" | "claude" | "custom"; // 内部支持更多类型，但UI只显示deepseek和custom
+  provider: "openai" | "deepseek" | "claude" | "custom";
   apiKey: string;
   apiUrl?: string;
   model?: string;
-  aiRole?: string; // AI 角色设定，用于定制化汇报
+  aiRole?: string;
 }
 
 export interface CalendarSettings {
   provider: "google" | "apple" | "outlook" | "ical" | "manual";
   apiKey?: string;
-  calendarUrl?: string; // iCal URL
+  calendarUrl?: string;
   enabled: boolean;
   description?: string;
 }
@@ -25,7 +20,7 @@ export interface CalendarSettings {
 export interface TodoSettings {
   provider: "notion" | "todoist" | "ticktick" | "manual";
   apiKey?: string;
-  databaseId?: string; // For Notion
+  databaseId?: string;
   enabled: boolean;
   description?: string;
 }
@@ -40,47 +35,60 @@ export interface FeedSettings {
 }
 
 export interface Settings {
-  pin?: string; // PIN码（明文存储，简单保护）
+  pin?: string;
   aiSettings?: AISettings;
-  aiSummaryEnabled?: boolean; // AI 汇报功能开关
+  aiSummaryEnabled?: boolean;
   calendar?: CalendarSettings;
   todo?: TodoSettings;
   feed?: FeedSettings;
   updatedAt: string;
 }
 
-// 确保数据目录存在
-async function ensureDataDir(): Promise<void> {
-  const dataDir = path.dirname(SETTINGS_FILE);
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-// 读取设置
+// 读取设置（从数据库）
 export async function getSettings(): Promise<Settings | null> {
   try {
-    await ensureDataDir();
-    const data = await fs.readFile(SETTINGS_FILE, "utf-8");
-    return JSON.parse(data) as Settings;
-  } catch {
+    const result = await db.execute({
+      sql: "SELECT data FROM settings WHERE id = 'default'",
+      args: [],
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return JSON.parse(result.rows[0].data as string) as Settings;
+  } catch (error) {
+    console.error("Error reading settings from database:", error);
     return null;
   }
 }
 
-// 保存设置
+// 保存设置（到数据库）
 export async function saveSettings(settings: Settings): Promise<void> {
-  await ensureDataDir();
-  settings.updatedAt = new Date().toISOString();
-  await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2), "utf-8");
+  try {
+    settings.updatedAt = new Date().toISOString();
+    const data = JSON.stringify(settings);
+
+    await db.execute({
+      sql: `
+        INSERT INTO settings (id, data, updatedAt)
+        VALUES ('default', ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          data = excluded.data,
+          updatedAt = excluded.updatedAt
+      `,
+      args: [data, settings.updatedAt],
+    });
+  } catch (error) {
+    console.error("Error saving settings to database:", error);
+    throw error;
+  }
 }
 
 // 验证 PIN 码
 export async function verifyPin(inputPin: string): Promise<boolean> {
   const settings = await getSettings();
-  if (!settings?.pin) return true; // 未设置 PIN 则无需验证
+  if (!settings?.pin) return true;
   return settings.pin === inputPin;
 }
 
@@ -108,7 +116,7 @@ export async function getAIConfig(): Promise<{
     },
     deepseek: {
       url: "https://api.deepseek.com/v1/chat/completions",
-      model: "deepseek-chat", // DeepSeek-V3，也可以用 deepseek-reasoner (R1)
+      model: "deepseek-chat",
     },
     claude: {
       url: "https://api.anthropic.com/v1/messages",
