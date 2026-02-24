@@ -13,6 +13,16 @@ interface FeedCardProps {
 }
 
 /**
+ * 格式化时间函数
+ */
+function formatTime(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const hours = dateObj.getHours().toString().padStart(2, '0');
+  const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+/**
  * 单个信息内容组件
  * 包含标题、时间、摘要的显示逻辑
  */
@@ -73,13 +83,6 @@ export function FeedCard({
   hasMore = true,
   onLoadMore
 }: FeedCardProps) {
-  function formatTime(date: Date | string) {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const hours = dateObj.getHours().toString().padStart(2, '0');
-    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  }
-
   return (
     <Card>
       <CardContent className="pt-6">
