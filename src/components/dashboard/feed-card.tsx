@@ -40,16 +40,47 @@ function formatTime(date: Date | string): string {
 }
 
 /**
+ * 将相邻且同源的信息分组
+ */
+function groupAdjacentBySource(items: FeedItem[]): FeedItem[][] {
+  const groups: FeedItem[][] = [];
+  let currentGroup: FeedItem[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const prevItem = i > 0 ? items[i - 1] : null;
+
+    // 如果是第一条，或者与前一条同源，加入当前组
+    if (!prevItem || item.sourceName === prevItem.sourceName) {
+      currentGroup.push(item);
+    } else {
+      // 来源不同，开始新组
+      if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+      }
+      currentGroup = [item];
+    }
+  }
+
+  // 添加最后一组
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
+  }
+
+  return groups;
+}
+
+/**
  * 单个来源分组组件
- * 将同一来源且时间相近的信息放在一个大框内
+ * 将相邻且同源的信息放在一个大框内
  */
 function SourceGroup({
-  sourceName,
   items
 }: {
-  sourceName: string;
   items: FeedItem[];
 }) {
+  const sourceName = items[0].sourceName;
+
   return (
     <div className="mb-4 animate-in slide-in-from-bottom-4 fade-in duration-300">
       {/* 大框容器 */}
@@ -111,16 +142,8 @@ export function FeedCard({
   hasMore = true,
   onLoadMore
 }: FeedCardProps) {
-  // 按来源和时间分组
-  // 优先按时间排序（已经在后端完成），然后按来源合并
-  const groupedItems = items.reduce((groups, item) => {
-    const source = item.sourceName;
-    if (!groups[source]) {
-      groups[source] = [];
-    }
-    groups[source].push(item);
-    return groups;
-  }, {} as Record<string, FeedItem[]>);
+  // 将相邻且同源的信息分组
+  const groupedItems = groupAdjacentBySource(items);
 
   return (
     <div className="space-y-4">
@@ -142,11 +165,11 @@ export function FeedCard({
         </div>
       )}
 
-      {/* 正常信息列表 - 按来源分组显示 */}
-      {!loading && Object.keys(groupedItems).length > 0 && (
+      {/* 正常信息列表 - 按相邻且同源分组显示 */}
+      {!loading && groupedItems.length > 0 && (
         <>
-          {Object.entries(groupedItems).map(([sourceName, sourceItems]) => (
-            <SourceGroup key={sourceName} sourceName={sourceName} items={sourceItems} />
+          {groupedItems((group, index) => (
+            <SourceGroup key={`${group[0].sourceName}-${index}`} items={group} />
           ))}
         </>
       )}
