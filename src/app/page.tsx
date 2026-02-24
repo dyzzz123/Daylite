@@ -23,6 +23,12 @@ export default function DashboardPage() {
   const [sources, setSources] = useState<FeedSource[]>([]);
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
 
+  // Pagination state
+  const [feedOffset, setFeedOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const FEED_PAGE_SIZE = 20;
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -56,14 +62,43 @@ export default function DashboardPage() {
   // Fetch feed items
   async function fetchFeeds() {
     try {
-      const response = await fetch("/api/feeds?limit=20");
+      const response = await fetch(`/api/feeds?limit=${FEED_PAGE_SIZE}`);
       if (!response.ok) throw new Error("Failed to fetch feeds");
 
       const data = await response.json();
       setFeed(data.items || []);
+      setFeedOffset(data.items.length);
+      setHasMore(data.items.length < data.total);
     } catch (err) {
       console.error("Failed to fetch feeds:", err);
       setError("获取信息流失败");
+    }
+  }
+
+  // Load more feed items (infinite scroll)
+  async function loadMoreFeeds() {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const response = await fetch(
+        `/api/feeds?limit=${FEED_PAGE_SIZE}&offset=${feedOffset}`
+      );
+      if (!response.ok) throw new Error("Failed to load more feeds");
+
+      const data = await response.json();
+
+      if (data.items.length > 0) {
+        setFeed(prev => [...prev, ...data.items]);
+        setFeedOffset(prev => prev + data.items.length);
+        setHasMore(feedOffset + data.items.length < data.total);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Failed to load more feeds:", err);
+    } finally {
+      setLoadingMore(false);
     }
   }
 
@@ -324,7 +359,13 @@ export default function DashboardPage() {
           )}
 
           {/* 信息流 */}
-          <FeedCard items={feed} />
+          <FeedCard
+            items={feed}
+            loading={loading}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+            onLoadMore={loadMoreFeeds}
+          />
         </div>
 
         {/* Settings Sidebar */}
