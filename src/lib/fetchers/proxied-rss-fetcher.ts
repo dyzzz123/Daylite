@@ -1,5 +1,5 @@
 import Parser from 'rss-parser';
-import type { FeedItem } from '@/types';
+import type { FeedItemInput } from '@/types';
 
 const parser = new Parser({
   timeout: 30000,
@@ -18,20 +18,25 @@ export interface RSSFetcherConfig {
 
 /**
  * 使用代理获取 RSS 内容
+ * 直接使用 allorigins 代理服务，而不是通过本地 API
  */
 async function fetchRSSContent(url: string): Promise<string> {
-  // 使用相对路径调用本地代理 API
-  const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+  // 使用 allorigins 代理服务
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
-  console.log(`[Proxied RSS] 调用代理 API: ${proxyUrl}`);
+  console.log(`[Proxied RSS] 调用代理: ${proxyUrl}`);
 
   const response = await fetch(proxyUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+    },
     signal: AbortSignal.timeout(35000), // 35秒超时
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`代理 API 返回错误 ${response.status}: ${errorText}`);
+    throw new Error(`代理服务返回错误 ${response.status}: ${errorText}`);
   }
 
   const text = await response.text();
@@ -43,7 +48,7 @@ async function fetchRSSContent(url: string): Promise<string> {
 /**
  * 使用代理获取 RSS（适合国内源）
  */
-export async function fetchRSSWithProxy(config: RSSFetcherConfig): Promise<FeedItem[]> {
+export async function fetchRSSWithProxy(config: RSSFetcherConfig): Promise<FeedItemInput[]> {
   try {
     console.log(`[Proxied RSS Fetcher] 获取 ${config.url} (使用代理)`);
 
@@ -53,7 +58,7 @@ export async function fetchRSSWithProxy(config: RSSFetcherConfig): Promise<FeedI
     // 解析 RSS 内容
     const feed = await parser.parseString(xmlContent);
 
-    const items: FeedItem[] = [];
+    const items: FeedItemInput[] = [];
 
     for (const item of feed.items) {
       if (!item.title) continue;
@@ -80,7 +85,6 @@ export async function fetchRSSWithProxy(config: RSSFetcherConfig): Promise<FeedI
       }
 
       items.push({
-        id: '',
         source: 'rss',
         sourceName: config.sourceName,
         title: item.title,
@@ -89,7 +93,6 @@ export async function fetchRSSWithProxy(config: RSSFetcherConfig): Promise<FeedI
         publishTime,
         read: false,
         tags: tags.length > 0 ? tags : undefined,
-        createdAt: new Date(),
       });
     }
 

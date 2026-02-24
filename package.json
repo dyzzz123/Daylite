@@ -12,6 +12,7 @@
     "@libsql/client": "^0.17.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@vercel/analytics": "^1.6.1",
     "chroma-js": "^3.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

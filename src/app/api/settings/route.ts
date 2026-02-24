@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSettings, saveSettings, verifyPin, getAIConfig, Settings } from "@/lib/settings";
+import { AI_ROLE_TEMPLATES } from "@/lib/ai-roles";
 
 // GET - 获取设置（需要 PIN 验证）
 export async function GET(request: NextRequest) {
@@ -34,6 +35,8 @@ export async function GET(request: NextRequest) {
       apiKeyPreview: settings.aiSettings?.apiKey
         ? `${settings.aiSettings.apiKey.slice(0, 4)}****`
         : null,
+      // 新增：返回 AI 角色设定
+      aiRole: settings.aiSettings?.aiRole || AI_ROLE_TEMPLATES.default.prompt,
     });
   } catch (error) {
     console.error("Settings GET error:", error);

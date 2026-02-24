@@ -5,7 +5,7 @@ import { fetchRSSWithProxy } from './fetchers/proxied-rss-fetcher';
 import { fetchZhihuHot } from './fetchers/zhihu-fetcher';
 import { fetchWeiboHot } from './fetchers/weibo-fetcher';
 import { fetchXiaohongshu } from './fetchers/xiaohongshu-fetcher';
-import type { FeedItem } from '@/types';
+import type { FeedItem, FeedItemInput } from '@/types';
 
 // Fetch all enabled sources
 export async function fetchAllSources(): Promise<{
@@ -22,7 +22,7 @@ export async function fetchAllSources(): Promise<{
 
   for (const source of sources) {
     try {
-      let items: FeedItem[] = [];
+      let items: FeedItemInput[] = [];
 
       switch (source.type) {
         case 'rss':
@@ -73,7 +73,12 @@ export async function fetchAllSources(): Promise<{
       }
 
       if (items.length > 0) {
-        await createFeedItems(items);
+        // Add sourceId to each item before creating
+        const itemsWithSourceId = items.map(item => ({
+          ...item,
+          sourceId: source.id,
+        }));
+        await createFeedItems(itemsWithSourceId);
         successCount++;
         totalItems += items.length;
         console.log(`✓ Fetched ${items.length} items from ${source.name}`);
@@ -111,7 +116,7 @@ export async function fetchSourceById(sourceId: string): Promise<number> {
     throw new Error(`Source ${source.name} is disabled`);
   }
 
-  let items: FeedItem[] = [];
+  let items: FeedItemInput[] = [];
 
   switch (source.type) {
     case 'rss':
@@ -161,7 +166,12 @@ export async function fetchSourceById(sourceId: string): Promise<number> {
   }
 
   if (items.length > 0) {
-    await createFeedItems(items);
+    // Add sourceId to each item before creating
+    const itemsWithSourceId = items.map(item => ({
+      ...item,
+      sourceId: source.id,
+    }));
+    await createFeedItems(itemsWithSourceId);
   }
 
   return items.length;

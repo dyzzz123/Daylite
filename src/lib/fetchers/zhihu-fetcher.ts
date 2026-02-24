@@ -1,4 +1,4 @@
-import type { FeedItem } from '@/types';
+import type { FeedItemInput } from '@/types';
 
 export interface ZhihuFetcherConfig {
   limit?: number;
@@ -9,13 +9,13 @@ const ZHIHU_HOT_API = 'https://www.zhihu.com/api/v3/feed/topstory/hot-lists/tota
 
 /**
  * 抓取知乎热榜
- * @returns Promise<FeedItem[]>
+ * @returns Promise<FeedItemInput[]>
  */
 export async function fetchZhihuHot(
   config: ZhihuFetcherConfig = {}
-): Promise<FeedItem[]> {
+): Promise<FeedItemInput[]> {
   const { limit = 50 } = config;
-  const items: FeedItem[] = [];
+  const items: FeedItemInput[] = [];
 
   try {
     // 知乎热榜API
@@ -79,7 +79,7 @@ export async function fetchZhihuHot(
         : new Date();
 
       items.push({
-        id: '', // 将由 feed-service 生成
+         // 将由 feed-service 生成
         source: 'zhihu',
         sourceName: '知乎热榜',
         title: `${hotValue} • ${title}`,
@@ -88,8 +88,7 @@ export async function fetchZhihuHot(
         publishTime,
         read: false,
         tags,
-        createdAt: new Date(),
-      });
+              });
     }
 
     console.log(`✓ 知乎热榜: 抓取 ${items.length} 条`);
@@ -105,10 +104,10 @@ export async function fetchZhihuHot(
  * 抓取知乎热榜（备用方法 - 使用模拟数据）
  * 当API失败时返回模拟数据用于测试
  */
-export async function fetchZhihuHotMock(): Promise<FeedItem[]> {
+export async function fetchZhihuHotMock(): Promise<FeedItemInput[]> {
   return [
     {
-      id: '',
+      
       source: 'zhihu',
       sourceName: '知乎热榜',
       title: '1000000 • 如何评价当前的科技发展趋势？',
@@ -117,10 +116,9 @@ export async function fetchZhihuHotMock(): Promise<FeedItem[]> {
       publishTime: new Date(),
       read: false,
       tags: ['知乎', '热榜', '科技'],
-      createdAt: new Date(),
-    },
+          },
     {
-      id: '',
+      
       source: 'zhihu',
       sourceName: '知乎热榜',
       title: '999999 • 2024年最值得期待的AI产品有哪些？',
@@ -129,8 +127,7 @@ export async function fetchZhihuHotMock(): Promise<FeedItem[]> {
       publishTime: new Date(),
       read: false,
       tags: ['知乎', '热榜', 'AI', '产品'],
-      createdAt: new Date(),
-    },
+          },
   ];
 }
 

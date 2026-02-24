@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppInitializer } from "@/components/app-initializer";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "个人每日仪表盘",
-  description: "高效的个人每日信息概览",
+  description: "高效的个人每日信���概览",
 };
 
 export default function RootLayout({
@@ -30,6 +31,7 @@ export default function RootLayout({
       >
         <AppInitializer />
         {children}
+        <Analytics />
       </body>
     </html>
   );

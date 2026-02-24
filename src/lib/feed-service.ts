@@ -5,6 +5,7 @@ import type { FeedItem, FeedItemRow, GetFeedsParams } from '@/types';
 function rowToFeedItem(row: FeedItemRow): FeedItem {
   return {
     id: row.id,
+    sourceId: row.sourceId,
     source: row.source as any,
     sourceName: row.sourceName,
     title: row.title,
@@ -29,29 +30,34 @@ export async function getFeedItems(params: GetFeedsParams = {}): Promise<FeedIte
     endDate,
   } = params;
 
-  let query = 'SELECT * FROM feed_items WHERE 1=1';
+  // Use JOIN to only get feeds from enabled sources
+  let query = `
+    SELECT fi.* FROM feed_items fi
+    INNER JOIN feed_sources fs ON fi.sourceId = fs.id
+    WHERE fs.enabled = 1
+  `;
   const queryParams: any[] = [];
 
   if (source) {
-    query += ' AND source = ?';
+    query += ' AND fi.source = ?';
     queryParams.push(source);
   }
 
   if (unreadOnly) {
-    query += ' AND read = 0';
+    query += ' AND fi.read = 0';
   }
 
   if (startDate) {
-    query += ' AND publishTime >= ?';
+    query += ' AND fi.publishTime >= ?';
     queryParams.push(startDate);
   }
 
   if (endDate) {
-    query += ' AND publishTime <= ?';
+    query += ' AND fi.publishTime <= ?';
     queryParams.push(endDate);
   }
 
-  query += ' ORDER BY publishTime DESC LIMIT ? OFFSET ?';
+  query += ' ORDER BY fi.publishTime DESC LIMIT ? OFFSET ?';
   queryParams.push(limit, offset);
 
   const result = await db.execute({
@@ -66,25 +72,30 @@ export async function getFeedItems(params: GetFeedsParams = {}): Promise<FeedIte
 export async function getFeedItemsCount(params: GetFeedsParams = {}): Promise<number> {
   const { source, unreadOnly = false, startDate, endDate } = params;
 
-  let query = 'SELECT COUNT(*) as count FROM feed_items WHERE 1=1';
+  // Use JOIN to only count feeds from enabled sources
+  let query = `
+    SELECT COUNT(*) as count FROM feed_items fi
+    INNER JOIN feed_sources fs ON fi.sourceId = fs.id
+    WHERE fs.enabled = 1
+  `;
   const queryParams: any[] = [];
 
   if (source) {
-    query += ' AND source = ?';
+    query += ' AND fi.source = ?';
     queryParams.push(source);
   }
 
   if (unreadOnly) {
-    query += ' AND read = 0';
+    query += ' AND fi.read = 0';
   }
 
   if (startDate) {
-    query += ' AND publishTime >= ?';
+    query += ' AND fi.publishTime >= ?';
     queryParams.push(startDate);
   }
 
   if (endDate) {
-    query += ' AND publishTime <= ?';
+    query += ' AND fi.publishTime <= ?';
     queryParams.push(endDate);
   }
 
@@ -116,12 +127,13 @@ export async function createFeedItem(item: Omit<FeedItem, 'id' | 'createdAt'>): 
   await db.execute({
     sql: `
       INSERT INTO feed_items (
-        id, source, sourceName, title, summary, url,
+        id, sourceId, source, sourceName, title, summary, url,
         publishTime, read, tags, aiSummary, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       id,
+      item.sourceId,
       item.source,
       item.sourceName,
       item.title,
@@ -245,14 +257,14 @@ export async function deleteOldFeedItems(daysToKeep: number = 90): Promise<numbe
   return result.rowsAffected;
 }
 
-// Delete all feed items from a specific source
-export async function deleteFeedItemsBySource(source: string): Promise<number> {
+// Delete all feed items from a specific source (by sourceId)
+export async function deleteFeedItemsBySourceId(sourceId: string): Promise<number> {
   const result = await db.execute({
-    sql: 'DELETE FROM feed_items WHERE source = ?',
-    args: [source],
+    sql: 'DELETE FROM feed_items WHERE sourceId = ?',
+    args: [sourceId],
   });
 
-  console.log(`Deleted ${result.rowsAffected} feed items from source: ${source}`);
+  console.log(`Deleted ${result.rowsAffected} feed items from sourceId: ${sourceId}`);
   return result.rowsAffected;
 }
 

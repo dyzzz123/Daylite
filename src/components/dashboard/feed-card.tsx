@@ -1,21 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { FeedItem } from "@/types";
 
 interface FeedCardProps {
   items: FeedItem[];
-  onRefresh?: () => void;
   loading?: boolean;
 }
 
-export function FeedCard({ items, onRefresh, loading = false }: FeedCardProps) {
-  const [refreshing, setRefreshing] = useState(false);
-
+export function FeedCard({ items, loading = false }: FeedCardProps) {
   function formatTime(date: Date | string) {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const hours = dateObj.getHours().toString().padStart(2, '0');
@@ -23,38 +16,9 @@ export function FeedCard({ items, onRefresh, loading = false }: FeedCardProps) {
     return `${hours}:${minutes}`;
   }
 
-  async function handleRefresh() {
-    if (!onRefresh) return;
-
-    setRefreshing(true);
-    try {
-      // Trigger fetch to get new data
-      await fetch('/api/fetch', { method: 'POST' });
-      // Then refresh the display
-      await onRefresh();
-    } catch (err) {
-      console.error('Failed to refresh:', err);
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
   return (
     <Card>
       <CardContent className="pt-6">
-        {/* 顶部工具栏 */}
-        <div className="flex items-center justify-end mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
-          </Button>
-        </div>
-
         {/* 信息列表 */}
         <div className="space-y-3">
           {/* 骨架屏加载状态 - 脉冲加载 */}

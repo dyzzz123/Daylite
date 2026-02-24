@@ -1,4 +1,5 @@
 import { db, generateId, boolToInt, intToBool, parseJSON, stringifyJSON } from './db';
+import { deleteFeedItemsBySourceId } from './feed-service';
 import type { FeedSource, FeedSourceRow, SourceType } from '@/types';
 
 // Convert database row to FeedSource
@@ -84,7 +85,7 @@ export async function createSource(
 export async function updateSource(
   id: string,
   updates: Partial<Omit<FeedSource, 'id' | 'createdAt'>>
-): Promise<void> {
+): Promise<FeedSource> {
   const source = await getSourceById(id);
   if (!source) {
     throw new Error(`Source with id ${id} not found`);
@@ -118,7 +119,7 @@ export async function updateSource(
     values.push(stringifyJSON(updates.config));
   }
 
-  if (fields.length === 0) return;
+  if (fields.length === 0) return source;
 
   values.push(id);
 
@@ -126,24 +127,36 @@ export async function updateSource(
     sql: `UPDATE feed_sources SET ${fields.join(', ')} WHERE id = ?`,
     args: values,
   });
+
+  // 返回更新后的 source
+  return {
+    ...source,
+    ...updates,
+  };
 }
 
 // Delete a feed source
 export async function deleteSource(id: string): Promise<void> {
+  // First, delete all associated feed items
+  await deleteFeedItemsBySourceId(id);
+
+  // Then delete the source itself
   await db.execute({
     sql: 'DELETE FROM feed_sources WHERE id = ?',
     args: [id],
   });
+
+  console.log(`Deleted source ${id} and its associated feed items`);
 }
 
 // Toggle source enabled status
-export async function toggleSourceEnabled(id: string): Promise<void> {
+export async function toggleSourceEnabled(id: string): Promise<FeedSource> {
   const source = await getSourceById(id);
   if (!source) {
     throw new Error(`Source with id ${id} not found`);
   }
 
-  await updateSource(id, { enabled: !source.enabled });
+  return await updateSource(id, { enabled: !source.enabled });
 }
 
 // Initialize default sources

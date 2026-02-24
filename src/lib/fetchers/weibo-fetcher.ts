@@ -1,4 +1,4 @@
-import type { FeedItem } from '@/types';
+import type { FeedItemInput } from '@/types';
 
 export interface WeiboFetcherConfig {
   limit?: number;
@@ -10,7 +10,7 @@ export interface WeiboFetcherConfig {
  */
 export async function fetchWeiboHot(
   config: WeiboFetcherConfig = {}
-): Promise<FeedItem[]> {
+): Promise<FeedItemInput[]> {
   const { limit = 50 } = config;
 
   try {
@@ -35,8 +35,8 @@ export async function fetchWeiboHot(
  * 从微博API抓取热搜（实验性）
  * 注意：可能需要额外的认证或cookie
  */
-async function fetchWeiboFromAPI(limit: number): Promise<FeedItem[]> {
-  const items: FeedItem[] = [];
+async function fetchWeiboFromAPI(limit: number): Promise<FeedItemInput[]> {
+  const items: FeedItemInput[] = [];
 
   try {
     // 微博热搜的公开API（可能随时失效）
@@ -74,7 +74,6 @@ async function fetchWeiboFromAPI(limit: number): Promise<FeedItem[]> {
       }
 
       items.push({
-        id: '',
         source: 'weibo',
         sourceName: '微博热搜',
         title,
@@ -83,7 +82,6 @@ async function fetchWeiboFromAPI(limit: number): Promise<FeedItem[]> {
         publishTime: new Date(),
         read: false,
         tags,
-        createdAt: new Date(),
       });
     }
 
@@ -98,7 +96,7 @@ async function fetchWeiboFromAPI(limit: number): Promise<FeedItem[]> {
 /**
  * 微博热搜模拟数据（用于测试和降级）
  */
-export async function fetchWeiboMock(limit: number = 20): Promise<FeedItem[]> {
+export async function fetchWeiboMock(limit: number = 20): Promise<FeedItemInput[]> {
   const mockTopics = [
     { word: '今日科技热点', category: '科技' },
     { word: 'AI技术突破', category: '科技' },
@@ -113,7 +111,6 @@ export async function fetchWeiboMock(limit: number = 20): Promise<FeedItem[]> {
   ];
 
   return mockTopics.slice(0, limit).map((topic, index) => ({
-    id: '',
     source: 'weibo' as const,
     sourceName: '微博热搜',
     title: `${index + 1} ${topic.word}`,
@@ -122,7 +119,6 @@ export async function fetchWeiboMock(limit: number = 20): Promise<FeedItem[]> {
     publishTime: new Date(),
     read: false,
     tags: ['微博', '热搜', topic.category],
-    createdAt: new Date(),
   }));
 }
 
@@ -130,7 +126,7 @@ export async function fetchWeiboMock(limit: number = 20): Promise<FeedItem[]> {
  * 使用第三方API抓取微博热搜
  * 可以集成第三方服务如：聚合数据、天行数据等
  */
-async function fetchWeiboFromThirdParty(): Promise<FeedItem[]> {
+async function fetchWeiboFromThirdParty(): Promise<FeedItemInput[]> {
   // TODO: 集成第三方API
   // 示例：使用聚合数据的微博热搜API
   // const API_KEY = process.env.JUHE_API_KEY;
@@ -176,7 +172,7 @@ export async function getWeiboMetadata(): Promise<{
  * 从微博搜索页面抓取（备用方法，使用HTML解析）
  * 注意：此方法需要 Cheerio 或类似库来解析HTML
  */
-async function fetchWeiboFromHTML(): Promise<FeedItem[]> {
+async function fetchWeiboFromHTML(): Promise<FeedItemInput[]> {
   // TODO: 实现HTML解析
   // const response = await fetch('https://s.weibo.com/top/summary');
   // const html = await response.text();

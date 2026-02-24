@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  deleteFeedItemsBySource,
+  deleteFeedItemsBySourceId,
   deleteAllFeedItems,
   getFeedItemsCount
 } from "@/lib/feed-service";
 
 /**
  * POST /api/feeds/clean
- * Cleans up feed items by source or deletes all items
- * Body: { source?: string, deleteAll?: boolean }
+ * Cleans up feed items by sourceId or deletes all items
+ * Body: { sourceId?: string, deleteAll?: boolean }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { source, deleteAll } = body;
+    const { sourceId, deleteAll } = body;
 
     // Get count before deletion
     const beforeCount = await getFeedItemsCount();
@@ -25,13 +25,13 @@ export async function POST(request: NextRequest) {
       // Delete all feed items
       deletedCount = await deleteAllFeedItems();
       message = `已清空所有信息流（共 ${deletedCount} 条）`;
-    } else if (source) {
-      // Delete feed items from specific source
-      deletedCount = await deleteFeedItemsBySource(source);
-      message = `已删除 ${source} 的所有内容（共 ${deletedCount} 条）`;
+    } else if (sourceId) {
+      // Delete feed items from specific source by sourceId
+      deletedCount = await deleteFeedItemsBySourceId(sourceId);
+      message = `已删除该信息源的所有内容（共 ${deletedCount} 条）`;
     } else {
       return NextResponse.json(
-        { error: "请指定要删除的来源或使用 deleteAll=true" },
+        { error: "请指定要删除的信息源ID（sourceId）或使用 deleteAll=true" },
         { status: 400 }
       );
     }

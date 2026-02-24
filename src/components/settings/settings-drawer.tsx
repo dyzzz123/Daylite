@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, X, Eye, EyeOff, ChevronRight, Calendar, CheckSquare, Rss } from "lucide-react";
+import { Settings, X, Eye, EyeOff, ChevronRight, Calendar, CheckSquare, Rss, ChevronDown } from "lucide-react";
+import { AI_ROLE_TEMPLATES } from "@/lib/ai-roles";
 
 interface SettingsData {
   pinSet: boolean;
@@ -51,6 +52,9 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   const [apiKey, setApiKey] = useState("");
   const [customUrl, setCustomUrl] = useState("");
   const [customModel, setCustomModel] = useState("");
+  const [aiRole, setAiRole] = useState(AI_ROLE_TEMPLATES.default.prompt);
+  const [selectedRoleKey, setSelectedRoleKey] = useState("default");
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
   // 数据源设置
@@ -82,6 +86,18 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         const data = await res.json();
         setSettings(data);
         if (data.provider) setProvider(data.provider);
+        if (data.aiRole) {
+          setAiRole(data.aiRole);
+          // 判断是否是预设角色
+          let matchedRoleKey = "custom";
+          for (const [key, template] of Object.entries(AI_ROLE_TEMPLATES)) {
+            if (data.aiRole === template.prompt) {
+              matchedRoleKey = key;
+              break;
+            }
+          }
+          setSelectedRoleKey(matchedRoleKey);
+        }
         if (data.calendar) {
           setCalendarProvider(data.calendar.provider);
           setCalendarEnabled(data.calendar.enabled);
@@ -112,6 +128,18 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
       const data = await res.json();
       setSettings(data);
       if (data.provider) setProvider(data.provider);
+      if (data.aiRole) {
+        setAiRole(data.aiRole);
+        // 判断是否是预设角色
+        let matchedRoleKey = "custom";
+        for (const [key, template] of Object.entries(AI_ROLE_TEMPLATES)) {
+          if (data.aiRole === template.prompt) {
+            matchedRoleKey = key;
+            break;
+          }
+        }
+        setSelectedRoleKey(matchedRoleKey);
+      }
       if (data.calendar) {
         setCalendarProvider(data.calendar.provider);
         setCalendarEnabled(data.calendar.enabled);
@@ -141,6 +169,7 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         apiKey: apiKey || undefined,
         apiUrl: customUrl || undefined,
         model: customModel || undefined,
+        aiRole: aiRole || undefined,
       };
 
       const calendar: CalendarSettings = {
@@ -176,11 +205,37 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
       });
 
       if (res.ok) {
-        setMessage("保存成功！");
+        // 如果有 AI 设置，测试 API 连接
+        if (aiSettings.apiKey) {
+          try {
+            const testRes = await fetch("/api/settings/ai/test", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                provider: aiSettings.provider,
+                apiKey: aiSettings.apiKey,
+                apiUrl: aiSettings.apiUrl,
+                model: aiSettings.model,
+              }),
+            });
+
+            const testResult = await testRes.json();
+            if (testResult.valid) {
+              setMessage(`✓ ${testResult.message || "保存成功！API 配置有效"}`);
+            } else {
+              setMessage(`⚠️ 保存成功，但 API 测试失败：${testResult.error || "未知错误"}`);
+            }
+          } catch (testErr) {
+            setMessage("保存成功！（API 测试失败）");
+          }
+        } else {
+          setMessage("保存成功！");
+        }
+
         setTimeout(() => {
           onClose();
           window.location.reload();
-        }, 1000);
+        }, 2000);
       } else {
         const data = await res.json();
         setMessage(data.error || "保存失败");
@@ -388,15 +443,77 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                             />
                           </div>
                           <div>
-                            <label className="text-sm font-medium">模型名称</label>
+                            <label className="text-sm font-medium">模型名称 <span className="text-gray-400">(可选)</span></label>
                             <Input
-                              placeholder="gpt-3.5-turbo"
+                              placeholder="不填写将使用默认模型 gpt-3.5-turbo"
                               value={customModel}
                               onChange={(e) => setCustomModel(e.target.value)}
                             />
                           </div>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+
+                  {/* AI 角色设定 */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">AI 角色设定</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+                          className="w-full flex items-center justify-between px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                        >
+                          <span>{AI_ROLE_TEMPLATES[selectedRoleKey as keyof typeof AI_ROLE_TEMPLATES]?.name || "自定义"}</span>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showRoleDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showRoleDropdown && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                            {Object.entries(AI_ROLE_TEMPLATES).map(([key, template]) => (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedRoleKey(key);
+                                  setAiRole(template.prompt);
+                                  setShowRoleDropdown(false);
+                                }}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                              >
+                                {template.name}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedRoleKey("custom");
+                                setShowRoleDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-t border-gray-100 last:rounded-b-lg"
+                            >
+                              自定义
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <textarea
+                        value={aiRole}
+                        onChange={(e) => {
+                          setAiRole(e.target.value);
+                          setSelectedRoleKey("custom");
+                        }}
+                        placeholder="设定 AI 的角色和关注重点，例如：你是一位人力资源专家，重点关注人事变动、招聘信息和组织架构调整..."
+                        rows={3}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                      />
+                      <p className="text-xs text-gray-400">
+                        设定 AI 的角色和关注重点，让汇报更符合你的需求
+                      </p>
                     </CardContent>
                   </Card>
 
@@ -524,7 +641,7 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                   <Button
                     className="w-full"
                     onClick={saveSettings}
-                    disabled={saving || (provider === "custom" && (!customUrl || !customModel))}
+                    disabled={saving || (provider === "custom" && !customUrl)}
                   >
                     {saving ? "保存中..." : "保存设置"}
                   </Button>

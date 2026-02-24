@@ -6,6 +6,7 @@ import { SettingsSidebar } from "@/components/dashboard/settings-sidebar";
 import { Button } from "@/components/ui/button";
 import { Settings, RefreshCw, AlertCircle, Sparkles } from "lucide-react";
 import type { FeedItem, FeedSource } from "@/types";
+import { trackPageView, trackAction, trackConfig, EventNames } from "@/lib/analytics";
 
 interface SummaryResponse {
   summary: string;
@@ -25,8 +26,10 @@ export default function DashboardPage() {
   // UI state
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [aiSummaryEnabled, setAiSummaryEnabled] = useState(true);
 
   const today = new Date().toLocaleDateString('zh-CN', {
     weekday: 'long',
@@ -78,6 +81,50 @@ export default function DashboardPage() {
     }
   }
 
+  // Fetch AI summary enabled setting
+  async function fetchAISummaryEnabled() {
+    try {
+      const response = await fetch("/api/settings/ai");
+      if (!response.ok) return;
+
+      const data = await response.json();
+      setAiSummaryEnabled(data.aiSummaryEnabled ?? true);
+    } catch (err) {
+      console.error("Failed to fetch AI summary enabled:", err);
+    }
+  }
+
+  // Handle sources update (refresh both sources and feeds)
+  async function handleSourcesUpdate() {
+    await Promise.all([fetchSources(), fetchFeeds()]);
+  }
+
+  // Handle AI summary toggle
+  function handleAISummaryToggle(enabled: boolean) {
+    setAiSummaryEnabled(enabled);
+  }
+
+  // Handle refresh all (AI summary + feeds + sources)
+  async function handleRefreshAll() {
+    setRefreshing(true);
+    try {
+      // 埋点：手动刷新（使用 try-catch 确保不会阻塞其他代码）
+      try {
+        trackAction(EventNames.FEED_FETCH);
+      } catch (err) {
+        console.error("Analytics error:", err);
+      }
+
+      await Promise.allSettled([
+        fetchSummary(),
+        fetchFeeds(),
+        fetchSources()
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   // Fetch AI summary
   async function fetchSummary() {
     try {
@@ -93,6 +140,13 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({ forceRefresh: true }), // 强制刷新，不使用缓存
       });
+
+      // 埋点：AI 总结生成（使用 try-catch 确保不会阻塞其他代码）
+      try {
+        trackAction(EventNames.AI_SUMMARY_REFRESH);
+      } catch (err) {
+        console.error("Analytics error:", err);
+      }
 
       if (!response.ok) {
         throw new Error("Failed to fetch summary");
@@ -118,11 +172,32 @@ export default function DashboardPage() {
   }
 
   // Initial data load
+  // 页面浏览埋点（使用 try-catch 确保不会阻塞其他代码）
+  useEffect(() => {
+    try {
+      trackPageView("home");
+    } catch (err) {
+      console.error("Analytics error:", err);
+      // 不阻塞页面功能
+    }
+  }, []);
+
   useEffect(() => {
     async function loadInitialData() {
       setLoading(true);
-      await Promise.all([fetchFeeds(), fetchSources(), fetchSummary()]);
-      setLoading(false);
+      try {
+        // 并行加载所有数据，但即使某个失败也不影响其他
+        await Promise.allSettled([
+          fetchFeeds(),
+          fetchSources(),
+          fetchAISummaryEnabled(),
+          fetchSummary()
+        ]);
+      } catch (err) {
+        console.error("Error loading initial data:", err);
+      } finally {
+        setLoading(false);
+      }
     }
 
     loadInitialData();
@@ -138,9 +213,21 @@ export default function DashboardPage() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 {today}
               </p>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                {getGreeting()}，John
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                  {getGreeting()}，John
+                </h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={handleRefreshAll}
+                  disabled={refreshing}
+                  title="刷新 AI 汇报和信息流"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <Button
@@ -167,35 +254,25 @@ export default function DashboardPage() {
         {/* Main Content */}
         <div className="space-y-6">
           {/* 今日 AI 汇报 */}
-          <div className="p-6">
+          {aiSummaryEnabled && (
+            <div className="p-6">
             {/* 头部 */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                {summaryData?.isMock && (
-                  <span className="text-xs text-muted-foreground">
-                    演示模式
-                  </span>
-                )}
-                {!summaryData?.isMock && summaryData?.fromCache && (
-                  <span className="text-xs text-muted-foreground">
-                    已缓存
-                  </span>
-                )}
-                {!summaryData?.isMock && summaryData?.isFresh && (
-                  <span className="text-xs text-muted-foreground">
-                    {getGeneratedTime()} 生成
-                  </span>
-                )}
-              </div>
-              <Button
-                onClick={fetchSummary}
-                disabled={summaryLoading}
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-              >
-                <RefreshCw className={`w-4 h-4 ${summaryLoading ? 'animate-spin' : ''}`} />
-              </Button>
+            <div className="flex items-center gap-2 mb-4">
+              {summaryData?.isMock && (
+                <span className="text-xs text-muted-foreground">
+                  演示模式
+                </span>
+              )}
+              {!summaryData?.isMock && summaryData?.fromCache && (
+                <span className="text-xs text-muted-foreground">
+                  已缓存
+                </span>
+              )}
+              {!summaryData?.isMock && summaryData?.isFresh && (
+                <span className="text-xs text-muted-foreground">
+                  {getGeneratedTime()} 生成
+                </span>
+              )}
             </div>
 
             {/* 加载状态 */}
@@ -244,16 +321,18 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* 信息流 */}
-          <FeedCard items={feed} onRefresh={fetchFeeds} />
+          <FeedCard items={feed} />
         </div>
 
         {/* Settings Sidebar */}
         <SettingsSidebar
           isOpen={settingsOpen}
           onClose={() => setSettingsOpen(false)}
-          onSourcesUpdate={fetchSources}
+          onSourcesUpdate={handleSourcesUpdate}
+          onAISummaryToggle={handleAISummaryToggle}
         />
 
         {/* Footer */}

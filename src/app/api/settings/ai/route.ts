@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSettings, saveSettings, Settings } from "@/lib/settings";
+import { AI_ROLE_TEMPLATES } from "@/lib/ai-roles";
 
 // GET - 获取AI配置（不需要PIN验证，用于前端显示）
 export async function GET() {
@@ -12,6 +13,8 @@ export async function GET() {
         configured: false,
         provider: "openai",
         apiKeyPreview: null,
+        aiRole: AI_ROLE_TEMPLATES.default.prompt,
+        aiSummaryEnabled: settings?.aiSummaryEnabled ?? true, // 默认开启
       });
     }
 
@@ -21,6 +24,8 @@ export async function GET() {
       apiKeyPreview: `${aiSettings.apiKey.slice(0, 4)}****`,
       apiUrl: aiSettings.apiUrl,
       model: aiSettings.model,
+      aiRole: aiSettings.aiRole || AI_ROLE_TEMPLATES.default.prompt,
+      aiSummaryEnabled: settings?.aiSummaryEnabled ?? true, // 默认开启
     });
   } catch (error) {
     console.error("AI Settings GET error:", error);
@@ -35,7 +40,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { provider, apiKey, apiUrl, model } = body;
+    const { provider, apiKey, apiUrl, model, aiRole, aiSummaryEnabled } = body;
 
     if (!apiKey) {
       return NextResponse.json(
@@ -55,17 +60,53 @@ export async function POST(request: NextRequest) {
         apiKey,
         apiUrl,
         model,
+        aiRole,
       },
+      aiSummaryEnabled: aiSummaryEnabled ?? true, // 默认开启
       updatedAt: new Date().toISOString(),
     };
 
     await saveSettings(newSettings);
+
+    // 保存成功后，自动测试 API 配置
+    let testResult: { valid: boolean; message?: string; error?: string } = {
+      valid: false,
+      message: "",
+    };
+
+    try {
+      // 调用测试接口
+      const testUrl = new URL("/api/settings/ai/test", request.url);
+      const testResponse = await fetch(testUrl.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, apiKey, apiUrl, model }),
+      });
+
+      if (testResponse.ok) {
+        testResult = await testResponse.json();
+      } else {
+        testResult = {
+          valid: false,
+          error: "测试请求失败",
+        };
+      }
+    } catch (testError) {
+      console.error("AI test error:", testError);
+      testResult = {
+        valid: false,
+        error: testError instanceof Error ? testError.message : "测试失败",
+      };
+    }
 
     return NextResponse.json({
       success: true,
       configured: true,
       provider: newSettings.aiSettings?.provider,
       apiKeyPreview: `${apiKey.slice(0, 4)}****`,
+      aiSummaryEnabled: newSettings.aiSummaryEnabled,
+      // 新增：测试结果
+      testResult,
     });
   } catch (error) {
     console.error("AI Settings POST error:", error);

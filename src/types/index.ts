@@ -4,6 +4,7 @@ export type SourceType = 'rss' | 'xiaohongshu' | 'zhihu' | 'weibo' | 'forum';
 
 export interface FeedItem {
   id: string;
+  sourceId: string;
   source: SourceType;
   sourceName: string;
   title: string;
@@ -15,6 +16,9 @@ export interface FeedItem {
   aiSummary?: string;
   createdAt: Date;
 }
+
+// Partial feed item type for fetchers (without id, createdAt, sourceId)
+export type FeedItemInput = Omit<FeedItem, 'id' | 'createdAt' | 'sourceId'>;
 
 export interface FeedSource {
   id: string;
@@ -38,6 +42,7 @@ export interface DailyReport {
 // Database row types (with JSON fields as strings)
 export interface FeedItemRow {
   id: string;
+  sourceId: string;
   source: string;
   sourceName: string;
   title: string;

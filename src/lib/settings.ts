@@ -11,6 +11,7 @@ export interface AISettings {
   apiKey: string;
   apiUrl?: string;
   model?: string;
+  aiRole?: string; // AI 角色设定，用于定制化汇报
 }
 
 export interface CalendarSettings {
@@ -41,6 +42,7 @@ export interface FeedSettings {
 export interface Settings {
   pin?: string; // PIN码（明文存储，简单保护）
   aiSettings?: AISettings;
+  aiSummaryEnabled?: boolean; // AI 汇报功能开关
   calendar?: CalendarSettings;
   todo?: TodoSettings;
   feed?: FeedSettings;

@@ -85,6 +85,7 @@ export async function GET() {
     // Test 6: Create feed items
     await runTest('Create feed items', async () => {
       const testItem = {
+        sourceId: 'test-source-id',
         source: 'rss' as const,
         sourceName: '测试源',
         title: '测试文章标题',

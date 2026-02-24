@@ -1,4 +1,4 @@
-import type { FeedItem } from '@/types';
+import type { FeedItemInput } from '@/types';
 
 export interface XiaohongshuFetcherConfig {
   limit?: number;
@@ -12,7 +12,7 @@ export interface XiaohongshuFetcherConfig {
  */
 export async function fetchXiaohongshu(
   config: XiaohongshuFetcherConfig = {}
-): Promise<FeedItem[]> {
+): Promise<FeedItemInput[]> {
   const { limit = 30, category = 'all' } = config;
 
   try {
@@ -41,7 +41,7 @@ export async function fetchXiaohongshu(
 async function fetchXiaohongshuFromAPI(
   limit: number,
   category: string
-): Promise<FeedItem[]> {
+): Promise<FeedItemInput[]> {
   // 示例：使用第三方API
   // const API_KEY = process.env.XIAOHONGSHU_API_KEY;
   // const response = await fetch(`https://api.example.com/xiaohongshu/hot?category=${category}&limit=${limit}`, {
@@ -59,7 +59,7 @@ async function fetchXiaohongshuFromAPI(
 export async function fetchXiaohongshuMock(
   limit: number = 30,
   category: string = 'all'
-): Promise<FeedItem[]> {
+): Promise<FeedItemInput[]> {
   const mockData: Record<
     string,
     Array<{
@@ -182,7 +182,7 @@ export async function fetchXiaohongshuMock(
   items = items.sort(() => Math.random() - 0.5).slice(0, limit);
 
   return items.map((item) => ({
-    id: '',
+    
     source: 'xiaohongshu' as const,
     sourceName: '小红书',
     title: `🔥 ${item.likes} • ${item.title}`,
@@ -191,8 +191,7 @@ export async function fetchXiaohongshuMock(
     publishTime: new Date(),
     read: false,
     tags: ['小红书', ...item.tags],
-    createdAt: new Date(),
-  }));
+      }));
 }
 
 /**
@@ -225,7 +224,7 @@ export async function getXiaohongshuMetadata(): Promise<{
 async function fetchXiaohongshuFromSearch(
   keyword: string,
   limit: number
-): Promise<FeedItem[]> {
+): Promise<FeedItemInput[]> {
   // TODO: 实现搜索页面抓取
   // const response = await fetch(`https://www.xiaohongshu.com/web/api/sns/v1/search/notes?keyword=${keyword}`, {
   //   headers: {
@@ -240,7 +239,7 @@ async function fetchXiaohongshuFromSearch(
  * 小红书RSS代理（如果可用）
  * 某些第三方服务提供小红书的RSS feed
  */
-async function fetchXiaohongshuFromRSS(): Promise<FeedItem[]> {
+async function fetchXiaohongshuFromRSS(): Promise<FeedItemInput[]> {
   // TODO: 集成RSS代理服务
   // const RSS_URL = 'https://rss.example.com/xiaohongshu';
   // return fetchRSS({ url: RSS_URL, sourceName: '小红书', icon: '📕' });
