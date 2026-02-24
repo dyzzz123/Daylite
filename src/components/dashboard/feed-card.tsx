@@ -168,7 +168,7 @@ export function FeedCard({
       {/* 正常信息列表 - 按相邻且同源分组显示 */}
       {!loading && groupedItems.length > 0 && (
         <>
-          {groupedItems((group, index) => (
+          {groupedItems.map((group, index) => (
             <SourceGroup key={`${group[0].sourceName}-${index}`} items={group} />
           ))}
         </>
