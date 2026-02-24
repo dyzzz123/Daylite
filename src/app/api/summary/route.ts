@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         const lines = content.split('\n').filter((line: string) => line.trim());
         summary = lines[0] || (todayFeed.length > 0 ? "今日信息已整理完毕" : "暂无今日信息，请尝试刷新信息流");
         // 只提取以「•」开头的行作为关键点
-        keyPoints = lines.slice(1).filter(line => line.includes('•'));
+        keyPoints = lines.slice(1).filter((line: string) => line.includes('•'));
       } else {
         summary = todayFeed.length > 0 ? "今日信息已整理完毕" : "暂无今日信息，请尝试刷新信息流";
       }
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
         console.log("OpenAI parsed lines:", lines);
         summary = lines[0] || (todayFeed.length > 0 ? "今日信息已整理完毕" : "暂无今日信息，请尝试刷新信息流");
         // 只提取以「•」开头的行作为关键点
-        keyPoints = lines.slice(1).filter(line => line.includes('•'));
+        keyPoints = lines.slice(1).filter((line: string) => line.includes('•'));
       } else {
         summary = todayFeed.length > 0 ? "今日信息已整理完毕" : "暂无今日信息，请尝试刷新信息流";
       }
