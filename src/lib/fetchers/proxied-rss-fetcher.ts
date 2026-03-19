@@ -1,5 +1,6 @@
 import Parser from 'rss-parser';
 import type { FeedItemInput } from '@/types';
+import { getFaviconUrl } from '@/lib/favicon';
 
 const parser = new Parser({
   timeout: 30000,
@@ -141,15 +142,21 @@ export async function getRSSMetadataWithProxy(url: string): Promise<{
   title?: string;
   description?: string;
   link?: string;
+  icon?: string;
 } | null> {
   try {
     const xmlContent = await fetchRSSContent(url);
     const feed = await parser.parseString(xmlContent);
 
+    // Get favicon URL
+    const link = feed.link;
+    const icon = getFaviconUrl(url, link);
+
     return {
       title: feed.title,
       description: feed.description,
-      link: feed.link,
+      link,
+      icon: icon || undefined,
     };
   } catch (error) {
     console.error(`[Proxied RSS Metadata] 失败:`, (error as Error).message);

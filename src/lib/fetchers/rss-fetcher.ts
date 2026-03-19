@@ -1,5 +1,6 @@
 import Parser from 'rss-parser';
 import type { FeedItemInput } from '@/types';
+import { getFaviconUrl } from '@/lib/favicon';
 
 // 创建多个parser配置，尝试不同的headers
 const parsers = [
@@ -163,6 +164,7 @@ export async function getRSSMetadata(url: string): Promise<{
   title?: string;
   description?: string;
   link?: string;
+  icon?: string;
 } | null> {
   let lastError: Error | null = null;
 
@@ -170,10 +172,16 @@ export async function getRSSMetadata(url: string): Promise<{
     try {
       const feed = await parsers[i].parseURL(url);
       console.log(`[RSS Metadata] 使用配置 ${i + 1} 获取元数据成功: ${feed.title}`);
+
+      // Get favicon URL
+      const link = feed.link;
+      const icon = getFaviconUrl(url, link);
+
       return {
         title: feed.title,
         description: feed.description,
-        link: feed.link,
+        link,
+        icon: icon || undefined,
       };
     } catch (error) {
       lastError = error as Error;

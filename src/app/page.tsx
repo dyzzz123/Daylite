@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { FeedCard } from "@/components/dashboard/feed-card";
 import { SettingsSidebar } from "@/components/dashboard/settings-sidebar";
 import { Button } from "@/components/ui/button";
@@ -46,9 +47,9 @@ export default function DashboardPage() {
   // 根据时间获取问候语
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return '早安';
-    if (hour < 18) return '午安';
-    return '晚安';
+    if (hour < 12) return '早上好';
+    if (hour < 18) return '中午好';
+    return '晚上好';
   };
 
   // 获取生成时间
@@ -143,18 +144,36 @@ export default function DashboardPage() {
   async function handleRefreshAll() {
     setRefreshing(true);
     try {
-      // 埋点：手动刷新（使用 try-catch 确保不会阻塞其他代码）
       try {
         trackAction(EventNames.FEED_FETCH);
       } catch (err) {
         console.error("Analytics error:", err);
       }
 
-      await Promise.allSettled([
-        fetchSummary(),
-        fetchFeeds(),
-        fetchSources()
-      ]);
+      // 使用 SSE 流式抓取，每个源完成后立即刷新显示
+      await new Promise<void>((resolve) => {
+        const eventSource = new EventSource("/api/fetch");
+
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'source_done' && data.success) {
+            // 每个源抓取完成后立即刷新 feed 列表
+            fetchFeeds();
+          }
+          if (data.type === 'done' || data.type === 'error') {
+            eventSource.close();
+            resolve();
+          }
+        };
+
+        eventSource.onerror = () => {
+          eventSource.close();
+          resolve();
+        };
+      });
+
+      // 全部完成后刷新 AI 汇总
+      await fetchSummary();
     } finally {
       setRefreshing(false);
     }
@@ -324,9 +343,10 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 {/* 总结 */}
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <p className="text-base text-foreground leading-relaxed">
-                    {summaryData.summary}
-                  </p>
+                  <div className="text-base text-foreground leading-relaxed prose prose-sm max-w-none
+                    prose-strong:text-foreground prose-p:my-1 prose-ul:my-1 prose-li:my-0">
+                    <ReactMarkdown>{summaryData.summary}</ReactMarkdown>
+                  </div>
                 </div>
 
                 {/* 关键点 */}

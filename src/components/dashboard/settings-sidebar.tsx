@@ -22,6 +22,8 @@ interface QueueItem {
   status: 'validating' | 'success' | 'error';
   message: string;
   name?: string;
+  icon?: string;
+  type?: 'rss' | 'blog';
   abortController?: AbortController;
 }
 
@@ -72,12 +74,12 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
     message: string;
   } | null>(null);
 
-  // 后台验证 RSS 源
+  // 后台验证订阅源（RSS 或博客）
   async function validateInBackground(
     itemUrl: string,
     itemName: string,
     abortSignal?: AbortSignal
-  ): Promise<{ valid: boolean; name?: string; message: string }> {
+  ): Promise<{ valid: boolean; name?: string; icon?: string; type?: 'rss' | 'blog'; message: string }> {
     // 规范化URL
     let normalizedUrl = itemUrl.trim();
     if (!normalizedUrl.match(/^https?:\/\//i)) {
@@ -93,8 +95,8 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
         };
       }
 
-      // 步骤1: 尝试服务端验证
-      const serverResponse = await fetch("/api/sources/validate-rss", {
+      // 步骤1: 尝试服务端验证（通用订阅源验证）
+      const serverResponse = await fetch("/api/sources/validate-source", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: normalizedUrl }),
@@ -107,6 +109,8 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
         return {
           valid: true,
           name: serverData.metadata?.title || itemName,
+          icon: serverData.metadata?.icon, // 获取 favicon URL
+          type: serverData.type || 'rss', // 订阅源类型
           message: "✓ 验证成功",
         };
       }
@@ -181,7 +185,8 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
               ...item,
               status: result.valid ? 'success' : 'error',
               message: result.message,
-              name: result.name || item.name
+              name: result.name || item.name,
+              icon: result.icon,
             }
           : item
       ));
@@ -191,6 +196,8 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
         saveSource({
           url: newItem.url,
           name: result.name,
+          icon: result.icon,
+          type: result.type,
         });
       }
     }).catch(err => {
@@ -213,16 +220,16 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
     });
   }
 
-  // 保存 RSS 源
-  async function saveSource({ url, name }: { url: string; name: string }) {
+  // 保存订阅源
+  async function saveSource({ url, name, icon, type }: { url: string; name: string; icon?: string; type?: 'rss' | 'blog' }) {
     try {
       const response = await fetch("/api/sources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          type: "rss",
-          icon: "📰",
+          type: type || "rss",  // 使用检测到的类型，默认为 rss
+          icon: icon || (type === 'blog' ? "📝" : "📰"),  // 博客使用 📝，RSS 使用 📰
           url: url.trim(),
           enabled: true,
         }),
@@ -565,7 +572,8 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
 
   function getTypeLabel(type: string) {
     const labels: Record<string, string> = {
-      rss: 'RSS 订阅',
+      rss: '订阅源',
+      blog: '博客',
       xiaohongshu: '小红书',
       zhihu: '知乎热榜',
       weibo: '微博热搜',
@@ -734,7 +742,7 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
               {/* 添加新源 */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-3">
-                  添加 RSS 订阅
+                  添加订阅源
                 </h3>
 
                 {/* 队列显示 */}
@@ -795,6 +803,7 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
                       }}
                       placeholder="example.com/feed"
                       className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="支持 RSS 订阅源、博客链接"
                     />
                     <Button
                       type="button"
@@ -808,9 +817,6 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
                       添加
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    例如：36kr.com/feed 或 sspai.com/feed（按回车快速添加）
-                  </p>
                 </div>
               </div>
 
@@ -1125,11 +1131,8 @@ export function SettingsSidebar({ isOpen, onClose, onSourcesUpdate, onAISummaryT
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        编辑 RSS 订阅
+                        编辑订阅源
                       </h3>
-                      <p className="text-xs text-gray-500">
-                        修改名称或链接
-                      </p>
                     </div>
                   </div>
                   <Button

@@ -1,12 +1,13 @@
 // Type definitions for the information aggregation dashboard
 
-export type SourceType = 'rss' | 'xiaohongshu' | 'zhihu' | 'weibo' | 'forum';
+export type SourceType = 'rss' | 'xiaohongshu' | 'zhihu' | 'weibo' | 'forum' | 'blog';
 
 export interface FeedItem {
   id: string;
   sourceId: string;
   source: SourceType;
   sourceName: string;
+  sourceIcon?: string;
   title: string;
   summary: string;
   url?: string;
@@ -45,6 +46,7 @@ export interface FeedItemRow {
   sourceId: string;
   source: string;
   sourceName: string;
+  sourceIcon?: string;
   title: string;
   summary: string;
   url: string | null;

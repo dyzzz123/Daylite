@@ -129,12 +129,12 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("AI API error:", error);
-      // API 出错时返回 mock 数据
+      console.error("AI API error:", response.status, error);
+      // API 出错时返回 mock 数据，并附带实际错误信息
       const mockSummary = generateMockSummary(todayFeed);
       return NextResponse.json({
         ...mockSummary,
-        error: "AI service temporarily unavailable",
+        error: `AI API error ${response.status}: ${error}`,
       });
     }
 
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 // 构建发送给 AI 的 prompt（信息流聚合模式）
 function buildPrompt(feed: FeedItem[]): string {
   const currentHour = new Date().getHours();
-  const timeOfDay = currentHour < 12 ? "上午好" : currentHour < 18 ? "下午好" : "晚上好";
+  const timeOfDay = currentHour < 12 ? "早上好" : currentHour < 18 ? "中午好" : "晚上好";
 
   // 如果没有信息，返回简洁提示
   if (feed.length === 0) {
@@ -242,6 +242,7 @@ ${timeOfDay}！目前还没有今日信息。请稍后再试或点击「刷新�
 
   // 按信息源分组
   const rssItems = feed.filter(item => item.source === 'rss');
+  const blogItems = feed.filter(item => item.source === 'blog');
   const xiaohongshuItems = feed.filter(item => item.source === 'xiaohongshu');
   const zhihuItems = feed.filter(item => item.source === 'zhihu');
   const weiboItems = feed.filter(item => item.source === 'weibo');
@@ -251,8 +252,13 @@ ${timeOfDay}！目前还没有今日信息。请稍后再试或点击「刷新�
   const feedSections = [];
 
   if (rssItems.length > 0) {
-    feedSections.push(`**RSS订阅（${rssItems.length}条）：**
+    feedSections.push(`**订阅源（${rssItems.length}条）：**
 ${rssItems.map(item => `- ${item.sourceName}：${item.title}`).join('\n')}`);
+  }
+
+  if (blogItems.length > 0) {
+    feedSections.push(`**博客动态（${blogItems.length}条）：**
+${blogItems.map(item => `- ${item.sourceName}：${item.title}`).join('\n')}`);
   }
 
   if (xiaohongshuItems.length > 0) {

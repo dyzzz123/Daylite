@@ -8,6 +8,7 @@ function rowToFeedItem(row: FeedItemRow): FeedItem {
     sourceId: row.sourceId,
     source: row.source as any,
     sourceName: row.sourceName,
+    sourceIcon: row.sourceIcon,
     title: row.title,
     summary: row.summary,
     url: row.url || undefined,
@@ -32,7 +33,7 @@ export async function getFeedItems(params: GetFeedsParams = {}): Promise<FeedIte
 
   // Use JOIN to only get feeds from enabled sources
   let query = `
-    SELECT fi.* FROM feed_items fi
+    SELECT fi.*, fs.icon as sourceIcon FROM feed_items fi
     INNER JOIN feed_sources fs ON fi.sourceId = fs.id
     WHERE fs.enabled = 1
   `;
@@ -110,7 +111,12 @@ export async function getFeedItemsCount(params: GetFeedsParams = {}): Promise<nu
 // Get a single feed item by ID
 export async function getFeedItemById(id: string): Promise<FeedItem | null> {
   const result = await db.execute({
-    sql: 'SELECT * FROM feed_items WHERE id = ?',
+    sql: `
+      SELECT fi.*, fs.icon as sourceIcon
+      FROM feed_items fi
+      INNER JOIN feed_sources fs ON fi.sourceId = fs.id
+      WHERE fi.id = ?
+    `,
     args: [id],
   });
 
@@ -212,8 +218,9 @@ export async function searchFeedItems(
   const { limit = 20, offset = 0, source, startDate, endDate } = params;
 
   let sql = `
-    SELECT f.* FROM feed_items f
+    SELECT f.*, fs.icon as sourceIcon FROM feed_items f
     JOIN feed_items_fts fts ON f.rowid = fts.rowid
+    INNER JOIN feed_sources fs ON f.sourceId = fs.id
     WHERE fts.feed_items_fts MATCH ?
   `;
   const queryParams: any[] = [query];

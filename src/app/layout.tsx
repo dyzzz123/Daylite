@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "个人每日仪表盘",
-  description: "高效的个人每日信���概览",
+  title: "Daylite",
+  description: "高效的个人每日信息概览",
 };
 
 export default function RootLayout({
